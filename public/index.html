@@ -29,7 +29,7 @@
         <div class="eyebrow"><span class="eyebrow-line"></span> PRODUCT IMAGE WORKFLOW</div>
         <h1>ลบสิ่งรบกวน <span>โดยไม่ส่งภาพออกจากเครื่อง</span></h1>
         <p>ช่วยลบข้อความหรือลายน้ำที่คุณมีสิทธิ์แก้ไข ด้วย AI Inpainting ในเบราว์เซอร์ เหมาะสำหรับเตรียมภาพสินค้าและเครื่องมือช่าง</p>
-        <div class="trust-row"><span><b>01</b> ตรวจจับข้อความเบื้องต้น</span><span><b>02</b> เติมภาพด้วย MI-GAN</span><span><b>03</b> ตรวจสอบก่อนดาวน์โหลด</span></div>
+        <div class="trust-row"><span><b>01</b> ตรวจจับข้อความเบื้องต้น</span><span><b>02</b> เติมภาพด้วย AI Inpainting</span><span><b>03</b> ตรวจสอบก่อนดาวน์โหลด</span></div>
       </section>
 
       <section class="workspace" aria-label="พื้นที่แก้ไขภาพ">
@@ -46,20 +46,32 @@
 
           <div class="panel-section">
             <div class="section-heading"><span class="step-num">02</span><div><h2>ตรวจหาลายน้ำ</h2><p>OCR ทำงานภายในเบราว์เซอร์</p></div></div>
-            <button id="detectButton" class="button button-secondary full" type="button" disabled><span class="button-symbol">⌕</span> ตรวจจับข้อความที่ขอบภาพ</button>
-            <p class="helper">ระบบจะเสนอพื้นที่ข้อความน่าสงสัยบริเวณขอบภาพ ไม่สามารถแยกลายน้ำออกจากข้อความสินค้าทุกกรณีได้</p>
+            <button id="detectButton" class="button button-secondary full" type="button" disabled><span class="button-symbol">⌕</span> ค้นหาข้อความขอบภาพ (OCR)</button>
+            <p class="helper">OCR ตรวจเฉพาะข้อความบริเวณขอบภาพ ไม่ได้จำแนกโลโก้ทุกชนิด หากลายน้ำเป็นรูปโลโก้หรืออยู่กลางภาพ ให้ระบายมาสก์เองและครอบให้พอดี</p>
             <div class="mask-tools">
               <div class="tools-label">ปรับพื้นที่ลบด้วยตนเอง</div>
               <div class="tool-buttons"><button id="paintTool" class="tool-button active" type="button" disabled><span>＋</span> ระบายพื้นที่ลบ</button><button id="eraseTool" class="tool-button" type="button" disabled><span>−</span> คืนพื้นที่</button></div>
               <label class="range-label" for="brushSize"><span>ขนาดแปรง</span><output id="brushSizeValue">28 px</output></label>
               <input id="brushSize" type="range" min="8" max="120" value="28" disabled>
               <div class="mask-legend"><span class="legend-color"></span> สีแดง = บริเวณที่ AI จะเติมภาพ</div>
+              <label class="range-label" for="maskExpand"><span>ขยายขอบมาสก์</span><output id="maskExpandValue">8 px</output></label>
+              <input id="maskExpand" type="range" min="0" max="24" value="8">
+              <p class="helper">ขยายมาสก์คลุมขอบและเงาของลายน้ำที่เหลือหลังลบ</p>
+              <label class="range-label" for="maskFeather"><span>เกลี่ยขอบผลลัพธ์</span><output id="maskFeatherValue">3 px</output></label>
+              <input id="maskFeather" type="range" min="0" max="10" value="3">
+              <p class="helper">ช่วยลดรอยต่อระหว่างบริเวณที่เติมกับภาพเดิม</p>
             </div>
             <button id="clearMaskButton" class="text-button" type="button" disabled>ล้างมาสก์ทั้งหมด</button>
           </div>
 
           <div class="panel-section process-section">
-            <div class="section-heading"><span class="step-num">03</span><div><h2>เติมภาพด้วย AI</h2><p>โมเดล MI-GAN · รันบนเครื่อง</p></div></div>
+            <div class="section-heading"><span class="step-num">03</span><div><h2>เติมภาพด้วย AI</h2><p>เลือกโมเดลตามคุณภาพและความเร็ว</p></div></div>
+            <label class="model-label" for="modelSelect">โมเดล Inpainting</label>
+            <select id="modelSelect" class="model-select">
+              <option value="lama" selected>คุณภาพสูง · LaMa (~208 MB)</option>
+              <option value="migan">เร็วกว่า · MI-GAN (~28 MB)</option>
+            </select>
+            <p id="modelHint" class="helper model-hint">LaMa ใช้ภาพบริเวณที่เลือกมาขยายเป็น 512×512 · โหลดครั้งแรกประมาณ 208 MB · ใช้ WASM หาก WebGPU ไม่รองรับ</p>
             <div class="runtime-card"><div class="runtime-icon">AI</div><div><strong id="runtimeTitle">พร้อมเมื่อคุณเริ่ม</strong><small id="runtimeDetail">WebGPU ก่อน · WASM สำรอง</small></div><span id="runtimeStatus" class="runtime-state">รอ</span></div>
             <button id="processButton" class="button button-primary full" type="button" disabled><span class="sparkle">✳</span> เริ่มลบด้วย AI</button>
             <div id="progressArea" class="progress-area hidden"><div class="progress-head"><span id="progressText">กำลังเตรียม...</span><span id="progressPercent">0%</span></div><div class="progress-track"><span id="progressBar"></span></div></div>
