@@ -1,10 +1,10 @@
-# ClearMark Studio — CORS-fixed Cloudflare Worker build
+# ClearMark Studio — Quality Upgrade (LaMa + MI-GAN)
 
-เว็บช่วยลบข้อความ/วัตถุจากภาพที่คุณเป็นเจ้าของหรือได้รับอนุญาตให้แก้ไข ใช้ MI-GAN ONNX ในเบราว์เซอร์ ภาพของผู้ใช้ไม่ถูกอัปโหลดไปยัง Worker หรือ API ประมวลผลภาพ
+เว็บช่วยลบข้อความ/วัตถุจากภาพที่คุณเป็นเจ้าของหรือได้รับอนุญาตให้แก้ไข เลือก LaMa สำหรับคุณภาพสูงหรือ MI-GAN สำหรับความเร็ว โดยประมวลผลภาพในเบราว์เซอร์ ภาพของผู้ใช้ไม่ถูกอัปโหลดไปยัง Worker หรือ API ประมวลผลภาพ
 
 ## แก้ปัญหา CORS ที่เจอใน Console
 
-หน้าเว็บโหลดโมเดลจาก URL ของเว็บตัวเอง `/model/migan_pipeline_v2.onnx` ผ่าน `worker.js` ซึ่งจะดึงเฉพาะไฟล์โมเดลจาก Hugging Face ฝั่ง Worker และพยายามแคชโมเดลไว้ที่ edge เมื่อ Cache API ใช้งานได้ ข้อมูลภาพที่คุณเลือกประมวลผลอยู่ในเบราว์เซอร์และไม่ได้ส่งไป Hugging Face หรือ Worker
+หน้าเว็บโหลดโมเดลจาก URL ของเว็บตัวเองผ่าน `worker.js` ซึ่งดึงไฟล์โมเดลจาก Hugging Face และพยายามแคชไว้ที่ edge เมื่อ Cache API ใช้งานได้ ภาพที่คุณเลือกจะไม่ถูกส่งไป Hugging Face หรือ Worker
 
 ## แก้ปัญหา Workers asset เกิน 25 MiB
 
@@ -39,7 +39,7 @@ ai-watermark-remover/
    - Deploy command: `npm run deploy` (หรือ `npx wrangler deploy`)
    - Root directory: โฟลเดอร์ที่มี `wrangler.jsonc` อยู่
 5. อย่าตั้ง Static Assets directory เป็น `.` ใน Dashboard ให้ `wrangler.jsonc` เป็นแหล่ง config ตามโปรเจกต์นี้
-6. Deploy ใหม่ แล้วเปิด `https://ชื่อ-worker.workers.dev/model/migan_pipeline_v2.onnx` ควรเริ่มดาวน์โหลดไฟล์โมเดลหรือได้ response แบบ binary ไม่ใช่ 404
+6. Deploy ใหม่ แล้วเปิด `/model/migan_pipeline_v2.onnx` หรือ `/model/lama_fp32.onnx` ผ่าน URL ของ Worker ควรเริ่มดาวน์โหลดไฟล์โมเดลหรือได้ response แบบ binary ไม่ใช่ 404
 
 ### Deploy จากเครื่องด้วย Wrangler
 
@@ -55,7 +55,7 @@ npm run deploy
 
 ## ตรวจสอบหลัง Deploy
 
-- ถ้า URL `/model/migan_pipeline_v2.onnx` ดาวน์โหลดไฟล์โมเดลขนาดประมาณ 28 MB ได้ แสดงว่า route ทำงาน
+- ถ้า URL `/model/migan_pipeline_v2.onnx` ดาวน์โหลดโมเดลประมาณ 28 MB และ `/model/lama_fp32.onnx` ประมาณ 208 MB ได้ แสดงว่า route ทำงาน
 - ถ้าได้ `404` ให้ตรวจว่ามี Worker deploy จาก config นี้และตั้ง `run_worker_first` สำหรับ `/model/*`
 - ถ้าได้ `502` ให้ดู Worker Logs เพื่อดูสถานะจาก Hugging Face
 - หลัง deploy ให้กด Ctrl+F5 หรือเปิดหน้าต่าง Incognito เพื่อล้าง JavaScript เก่าจาก cache
@@ -65,23 +65,43 @@ npm run deploy
 - เลือกรูป JPG/PNG/WebP ได้ทีละภาพ (จำกัดขนาดตามที่ระบุใน UI)
 - OCR ภาษาอังกฤษในเบราว์เซอร์ช่วยเสนอข้อความน่าสงสัยบริเวณขอบภาพ
 - ระบาย/คืนพื้นที่มาสก์, Undo/Redo, preview ก่อน–หลัง และดาวน์โหลด PNG
-- MI-GAN ONNX ผ่าน ONNX Runtime Web; เลือก WebGPU ก่อนและลอง WASM หากเริ่มต้น WebGPU ไม่สำเร็จ
-- Worker proxy จำกัดไว้ที่ไฟล์ MI-GAN เท่านั้น ไม่ใช่ open proxy
+- LaMa ONNX สำหรับคุณภาพสูงและ MI-GAN ONNX สำหรับความเร็ว; เลือก WebGPU ก่อนและลอง WASM/CPU หาก WebGPU ไม่รองรับ
+- Worker proxy จำกัดไว้เฉพาะ path โมเดลที่ระบุ ไม่ใช่ open proxy
 
 ## ข้อจำกัด
 
 1. OCR ไม่ใช่ตัวตรวจจับลายน้ำโดยตรง อาจพลาดลายน้ำโลโก้/ลายน้ำกลางภาพ หรือเลือกข้อความสินค้าผิด ต้องตรวจมาสก์ก่อนประมวลผล
 2. Inpainting สร้างรายละเอียดขึ้นใหม่ ไม่ได้กู้พิกเซลที่ถูกทับมาเหมือนเดิม โปรดระวังเลขรุ่น โลโก้ สเกล และเครื่องหมายรับรอง
-3. ครั้งแรกต้องโหลดโมเดลประมาณ 28 MB และไลบรารี OCR/ONNX Runtime ผ่านอินเทอร์เน็ต แต่ภาพของคุณอยู่ในเบราว์เซอร์
+3. ครั้งแรกต้องโหลดโมเดลที่เลือก (LaMa ~208 MB หรือ MI-GAN ~28 MB) และไลบรารี OCR/ONNX Runtime ผ่านอินเทอร์เน็ต แต่ภาพของคุณอยู่ในเบราว์เซอร์
 4. Worker proxy ใช้โควตาของ Cloudflare Workers Free plan และอาจต้องดาวน์โหลดโมเดลจากต้นทางครั้งแรก
 5. `Unknown CPU vendor` จาก ONNX Runtime เป็นคำเตือนแยกต่างหาก ไม่ใช่สาเหตุ CORS
 6. มี `favicon.ico` และ `favicon.svg` ใน `public/` เพื่อลด error 404 จาก favicon
 
 ## Dependencies / License
 
-- MI-GAN ONNX: [edgetools/migan](https://huggingface.co/edgetools/migan), model card ระบุ MIT; ตรวจใบอนุญาตต้นทางก่อนใช้งานเชิงพาณิชย์
+- MI-GAN ONNX: [edgetools/migan](https://huggingface.co/edgetools/migan), MIT License.
+- LaMa ONNX: [edgetools/lama](https://huggingface.co/edgetools/lama), Apache-2.0 License.
 - ONNX Runtime Web: [Microsoft ONNX Runtime](https://github.com/microsoft/onnxruntime)
 - Tesseract.js: [Tesseract.js](https://github.com/naptha/tesseract.js)
 - Wrangler: [Cloudflare Wrangler](https://developers.cloudflare.com/workers/wrangler/)
 
 ใช้ภาพที่เป็นเจ้าของหรือได้รับอนุญาตให้แก้ไข และตรวจผลลัพธ์ก่อนนำไปเผยแพร่เชิงพาณิชย์
+
+
+## การปรับคุณภาพรุ่น 1.2
+
+- เพิ่ม LaMa ONNX เป็นโหมดคุณภาพสูง (ไฟล์โมเดลประมาณ 208 MB) พร้อม MI-GAN เป็นโหมดเร็ว
+- ประมวลผลบริเวณที่มีมาสก์เป็น crop แยกจากกัน เพื่อลดผลกระทบจากลายน้ำที่อยู่คนละมุมภาพ
+- ขยายมาสก์ก่อน Inpainting เพื่อคลุมขอบ/เงาของลายน้ำ และเกลี่ยขอบผลลัพธ์เพื่อช่วยลดรอยต่อ
+- LaMa ใช้ input 512×512 แบบ RGB float32 0..1 และ mask float32 ที่ 1 หมายถึงบริเวณลบ; output เป็น raw fill 0..255 ที่ composite กลับบนภาพเดิมเฉพาะมาสก์
+- Worker proxy รองรับทั้ง `/model/lama_fp32.onnx` และ `/model/migan_pipeline_v2.onnx`; ภาพของผู้ใช้ยังประมวลผลในเบราว์เซอร์เท่านั้น
+
+### โมเดลและสิทธิ์การใช้งาน
+
+- MI-GAN ONNX: https://huggingface.co/edgetools/migan — MIT License.
+- LaMa ONNX: https://huggingface.co/edgetools/lama — Apache-2.0 License.
+- ONNX Runtime Web และ Tesseract.js โหลดจาก jsDelivr; การโหลดโมเดล/ไลบรารีต้องใช้อินเทอร์เน็ตในครั้งแรก
+
+### หมายเหตุคุณภาพ
+
+LaMa และ MI-GAN เป็นโมเดล inpainting ทั่วไป ไม่ได้ฝึกมาเพื่อกู้คืนตัวหนังสือบนสินค้าหรือรู้จำลายน้ำโดยเฉพาะ ผลลัพธ์เป็นการประมาณพื้นผิว ไม่สามารถรับประกันว่ารายละเอียดรุ่นสินค้า โลโก้ หรือสเกลจะถูกต้อง ควรซูมตรวจและรักษาภาพต้นฉบับไว้เสมอ.
