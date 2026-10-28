@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "clearmark-studio",
+  "main": "worker.js",
+  "compatibility_date": "2026-10-28",
+  "assets": {
+    "directory": ".",
+    "binding": "ASSETS",
+    "run_worker_first": ["/model/*"]
+  },
+  "observability": {
+    "enabled": true
+  }
+}
