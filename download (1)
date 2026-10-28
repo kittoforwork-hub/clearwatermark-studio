@@ -1,7 +1,0 @@
-.DS_Store
-Thumbs.db
-.env
-node_modules/
-.wrangler/
-dist/
-*.zip
